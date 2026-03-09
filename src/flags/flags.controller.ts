@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
 import { FlagsService } from './flags.service.js';
 import { CreateFlagDto } from './dto/create-flag.dto.js';
 
@@ -6,8 +6,22 @@ import { CreateFlagDto } from './dto/create-flag.dto.js';
 export class FlagsController {
   constructor(private readonly flagsService: FlagsService) {}
 
-  @Post()
+  @Post('create')
   create(@Body() dto: CreateFlagDto) {
     return this.flagsService.createFlag(dto);
+  }
+
+  @Get()
+  findAll() {
+    return this.flagsService.getFlags();
+  }
+
+  @Get(':key')
+  findOne(
+    @Param('key') key: string,
+    @Query('env') env: string,
+    @Query('region') region: string,
+  ) {
+    return this.flagsService.getFlag(key, env || 'dev', region || '');
   }
 }

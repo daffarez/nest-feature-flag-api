@@ -6,11 +6,6 @@ import {
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { CreateFlagDto } from './dto/create-flag.dto.js';
 
-interface FlagRule {
-  region: string;
-  enabled: boolean;
-}
-
 @Injectable()
 export class FlagsService {
   constructor(private prisma: PrismaService) {}
@@ -30,11 +25,14 @@ export class FlagsService {
     }
 
     return this.prisma.featureFlag.create({
-      data: dto,
+      data: {
+        ...dto,
+        rules: dto.rules,
+      },
     });
   }
 
-  async evaluate(key: string, environment: string, userRegion: string) {
+  async getFlag(key: string, environment: string, userRegion: string = '') {
     const flag = await this.prisma.featureFlag.findUnique({
       where: { key_environment: { key, environment } },
     });
@@ -47,5 +45,11 @@ export class FlagsService {
     return {
       enabled: matchingRule ? matchingRule.enabled : flag.isActive,
     };
+  }
+
+  async getFlags() {
+    const flags = await this.prisma.featureFlag.findMany({
+      orderBy: { createdAt: 'desc' },
+    });
   }
 }
