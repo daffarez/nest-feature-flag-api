@@ -1,6 +1,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   Patch,
@@ -8,7 +9,13 @@ import {
   Query,
 } from '@nestjs/common';
 import { FlagsService } from './flags.service.js';
-import { CreateFlagDto } from './dto/create-flag.dto.js';
+import {
+  CreateFlagDto,
+  type Environment,
+  EnvironmentEnum,
+  UpdateFlagDto,
+} from './dto/flags.dto.js';
+import { ZodValidationPipe } from 'nestjs-zod';
 
 @Controller('flags')
 export class FlagsController {
@@ -20,14 +27,17 @@ export class FlagsController {
   }
 
   @Get()
-  findAll() {
-    return this.flagsService.getFlags();
+  findAll(
+    @Query('env', new ZodValidationPipe(EnvironmentEnum.optional()))
+    env?: Environment,
+  ) {
+    return this.flagsService.getFlags(env);
   }
 
   @Get(':key')
   findOne(
     @Param('key') key: string,
-    @Query('env') env: string,
+    @Query('env', new ZodValidationPipe(EnvironmentEnum)) env: Environment,
     @Query('region') region: string,
   ) {
     return this.flagsService.getFlag(key, env || 'dev', region || '');
@@ -36,9 +46,17 @@ export class FlagsController {
   @Patch(':key')
   update(
     @Param('key') key: string,
-    @Query('env') env: string,
-    @Body() dto: any,
+    @Query('env', new ZodValidationPipe(EnvironmentEnum)) env: Environment,
+    @Body() dto: UpdateFlagDto,
   ) {
     return this.flagsService.updateFlag(key, env || '', dto);
+  }
+
+  @Delete(':key')
+  remove(
+    @Param('key') key: string,
+    @Query('env', new ZodValidationPipe(EnvironmentEnum)) env: Environment,
+  ) {
+    return this.flagsService.deleteFlag(key, env);
   }
 }
