@@ -1,8 +1,4 @@
-import {
-  Injectable,
-  NotFoundException,
-  ConflictException,
-} from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../prisma/prisma.service.js';
 import { CreateFlagDto } from './dto/create-flag.dto.js';
 
@@ -11,19 +7,6 @@ export class FlagsService {
   constructor(private prisma: PrismaService) {}
 
   async createFlag(dto: CreateFlagDto) {
-    const existing = await this.prisma.featureFlag.findUnique({
-      where: {
-        key_environment: {
-          key: dto.key,
-          environment: dto.environment,
-        },
-      },
-    });
-
-    if (existing) {
-      throw new ConflictException(`Flag with key ${dto.key} exist`);
-    }
-
     return this.prisma.featureFlag.create({
       data: {
         ...dto,
@@ -37,7 +20,7 @@ export class FlagsService {
       where: { key_environment: { key, environment } },
     });
 
-    if (!flag || !flag.isActive) return { enabled: false };
+    if (!flag?.isActive) return { enabled: false };
 
     const rules = flag.rules as any[];
     const matchingRule = rules.find((r) => r.region === userRegion);
@@ -50,6 +33,26 @@ export class FlagsService {
   async getFlags() {
     const flags = await this.prisma.featureFlag.findMany({
       orderBy: { createdAt: 'desc' },
+    });
+
+    return flags;
+  }
+
+  async updateFlag(key: string, environment: string, data: any) {
+    return await this.prisma.featureFlag.update({
+      where: {
+        key_environment: { key, environment },
+      },
+      data: {
+        ...data,
+        ...(data.rules && { rules: data.rules as any }),
+      },
+    });
+  }
+
+  async deleteFlag(key: string, environment: string) {
+    return await this.prisma.featureFlag.delete({
+      where: { key_environment: { key, environment } },
     });
   }
 }
